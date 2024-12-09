@@ -1,139 +1,86 @@
-// Описаний у документації
-import iziToast from 'izitoast';
-// Додатковий імпорт стилів
-import 'izitoast/dist/css/iziToast.min.css';
-// Описаний у документації
+import { fetchImages } from './js/pixabay-api.js';
+import { clearGallery, renderImages } from './js/render-functions.js';
 import SimpleLightbox from 'simplelightbox';
-// Додатковий імпорт стилів
 import 'simplelightbox/dist/simple-lightbox.min.css';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 
-import fetchingGallery from './js/pixabay-api';
-import renderGallery from './js/render-functions';
+const form = document.querySelector('#search-form');
+const gallery = document.querySelector('.gallery');
+const loader = document.querySelector('.loader');
+const loadMoreButton = document.querySelector('.load-more'); 
 
-const searchForm = document.querySelector('.search-form');
-const galleryList = document.querySelector('.gallery');
-const loadMoreBtn = document.querySelector('button[data-load]');
+let query = '';
+let page = 1;
+let lightbox;
 
-const { fetchingGalleryPage, resetNextPageNum } = fetchingGallery();
-let userRequest = '';
-
-const galleryLightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-});
-
-searchForm.addEventListener('submit', async event => {
+form.addEventListener('submit', function (event) {
   event.preventDefault();
 
-  userRequest = event.target.elements.requestValue.value.trim();
-
-  if (!userRequest) {
+  query = form.elements.searchQuery.value.trim();
+  if (!query) {
+    iziToast.error({ title: 'Error', message: 'Please enter a search query!' });
     return;
   }
 
-  resetNextPageNum();
-  clearGallery();
-  showLoader(searchForm);
-  hideLoadMoreBtn();
+  page = 1;
+  clearGallery(gallery);
+  loadMoreButton.classList.add('is-hidden'); 
+  loader.classList.remove('is-hidden');
 
-  try {
-    const { hits: firstPage, isLastPage } = await fetchingGalleryPage(
-      userRequest
-    );
-
-    if (!firstPage.length) {
-      iziToast.error({
-        message:
-          'Sorry, there are no images matching your search query. Please try again!',
-        position: 'topRight',
-      });
-
-      removeLoader();
-
-      return;
-    }
-
-    renderGallery(firstPage, galleryList);
-    galleryLightbox.refresh();
-
-    removeLoader();
-    showLoadMoreBtn(isLastPage);
-  } catch (error) {
-    console.error(error);
-
-    iziToast.error({
-      message: 'Ooops! Something went wrong. Try again later',
-      position: 'topRight',
+  fetchImages(query, page)
+    .then(function (response) {
+      loader.classList.add('is-hidden');
+      if (response.hits.length === 0) {
+        iziToast.warning({ title: 'No results', message: 'Sorry, no images found!' });
+        return;
+      }
+      renderImages(response.hits, gallery);
+      lightbox = new SimpleLightbox('.gallery a');
+      lightbox.refresh();
+      if (response.totalHits > page * 15) {
+        loadMoreButton.classList.remove('is-hidden');
+      } else {
+        loadMoreButton.classList.add('is-hidden');
+        iziToast.info({ title: 'End of results', message: "You've reached the end of the search results." });
+      }
+    })
+    .catch(function (error) {
+      iziToast.error({ title: 'Error', message: error.message });
+      loader.classList.add('is-hidden');
+      loadMoreButton.classList.add('is-hidden');
     });
-
-    removeLoader();
-  }
-
-  searchForm.reset();
 });
 
-loadMoreBtn.addEventListener('click', async () => {
-  showLoader(galleryList);
-  hideLoadMoreBtn();
+loadMoreButton.addEventListener('click', function () {
+  page += 1;
+  loader.classList.remove('is-hidden');
+  fetchImages(query, page)
+    .then(function (response) {
+      loader.classList.add('is-hidden');
+      if (response.hits.length === 0) {
+        iziToast.warning({ title: 'No more results', message: 'Sorry, no more images found!' });
+        loadMoreButton.classList.add('is-hidden');
+        return;
+      }
+      renderImages(response.hits, gallery);
+      lightbox.refresh();
 
-  const { height: itemHeight } = document
-    .querySelector('.gallery-item')
-    .getBoundingClientRect();
+      const galleryItems = document.querySelectorAll('.gallery__item');
+      const cardHeight = galleryItems[0].getBoundingClientRect().height;
+      window.scrollBy(0, cardHeight * 2);
 
-  try {
-    const { hits: nextPage, isLastPage } = await fetchingGalleryPage(
-      userRequest
-    );
-
-    removeLoader();
-
-    renderGallery(nextPage, galleryList);
-    galleryLightbox.refresh();
-
-    window.scrollBy(0, itemHeight * 2);
-    showLoadMoreBtn(isLastPage);
-  } catch (error) {
-    console.error(error);
-
-    iziToast.error({
-      message: 'Ooops! Something went wrong. Try again later',
-      position: 'topRight',
+      
+      if (response.totalHits > page * 15) {
+        loadMoreButton.classList.remove('is-hidden');
+      } else {
+        loadMoreButton.classList.add('is-hidden');
+        iziToast.info({ title: 'End of results', message: "You've reached the end of the search results." });
+      }
+    })
+    .catch(function (error) {
+      iziToast.error({ title: 'Error', message: error.message });
+      loader.classList.add('is-hidden');
+      loadMoreButton.classList.add('is-hidden'); 
     });
-
-    removeLoader();
-  }
 });
-
-function showLoader(leftNeighborNode) {
-  leftNeighborNode.insertAdjacentHTML(
-    'afterend',
-    `<span class='loader'></span>`
-  );
-}
-
-function removeLoader(loaderNode = document.querySelector('.loader')) {
-  if (loaderNode) {
-    loaderNode.remove();
-  }
-}
-
-function showLoadMoreBtn(isLastPage) {
-  if (loadMoreBtn.classList.contains('visually-hidden')) {
-    if (isLastPage) {
-      iziToast.info({
-        message: "We're sorry, but you've reached the end of search results.",
-        position: 'topRight',
-      });
-    } else {
-      loadMoreBtn.classList.remove('visually-hidden');
-    }
-  }
-}
-
-function hideLoadMoreBtn() {
-  loadMoreBtn.classList.add('visually-hidden');
-}
-
-function clearGallery() {
-  galleryList.innerHTML = '';
-}
