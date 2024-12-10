@@ -22,4 +22,12 @@ export function renderImages(images, galleryElement) {
     .join('');
 
   galleryElement.insertAdjacentHTML('beforeend', markup);
+
+  // Плавно прокручуємо до нових картинок з затримкою
+  if (images.length > 0) {
+    setTimeout(() => {
+      const lastImage = galleryElement.lastElementChild;
+      lastImage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 300); // Затримка 300 мілісекунд
+  }
 }

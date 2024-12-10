@@ -12,7 +12,7 @@ const loadMoreButton = document.querySelector('.load-more');
 
 let query = '';
 let page = 1;
-let lightbox;
+const lightbox = new SimpleLightbox('.gallery a');
 
 form.addEventListener('submit', function (event) {
   event.preventDefault();
@@ -36,7 +36,6 @@ form.addEventListener('submit', function (event) {
         return;
       }
       renderImages(response.hits, gallery);
-      lightbox = new SimpleLightbox('.gallery a');
       lightbox.refresh();
       if (response.totalHits > page * 15) {
         loadMoreButton.classList.remove('is-hidden');
