@@ -44,7 +44,7 @@ form.addEventListener('submit', function (event) {
         iziToast.info({ title: 'End of results', message: "You've reached the end of the search results." });
       }
     })
-    .catch(function (error) {
+    .await(function (error) {
       iziToast.error({ title: 'Error', message: error.message });
       loader.classList.add('is-hidden');
       loadMoreButton.classList.add('is-hidden');
@@ -77,7 +77,7 @@ loadMoreButton.addEventListener('click', function () {
         iziToast.info({ title: 'End of results', message: "You've reached the end of the search results." });
       }
     })
-    .catch(function (error) {
+    .await(function (error) {
       iziToast.error({ title: 'Error', message: error.message });
       loader.classList.add('is-hidden');
       loadMoreButton.classList.add('is-hidden'); 
