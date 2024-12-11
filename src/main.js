@@ -19,67 +19,52 @@ form.addEventListener('submit', function (event) {
 
   query = form.elements.searchQuery.value.trim();
   if (!query) {
-    iziToast.error({ title: 'Error', message: 'Please enter a search query!' });
+    iziToast.error({ title: 'Помилка', message: 'Будь ласка, введіть запит для пошуку!' });
     return;
   }
 
   page = 1;
   clearGallery(gallery);
-  loadMoreButton.classList.add('is-hidden'); 
-  loader.classList.remove('is-hidden');
+  toggleLoader(true);
+  loadImages();
+});
 
+function loadImages() {
   fetchImages(query, page)
     .then(function (response) {
-      loader.classList.add('is-hidden');
+      toggleLoader(false);
       if (response.hits.length === 0) {
-        iziToast.warning({ title: 'No results', message: 'Sorry, no images found!' });
+        iziToast.warning({ title: 'Результати відсутні', message: 'Вибачте, зображень не знайдено!' });
         return;
       }
       renderImages(response.hits, gallery);
       lightbox.refresh();
-      if (response.totalHits > page * 15) {
-        loadMoreButton.classList.remove('is-hidden');
-      } else {
-        loadMoreButton.classList.add('is-hidden');
-        iziToast.info({ title: 'End of results', message: "You've reached the end of the search results." });
-      }
+      toggleLoadMoreButton(response.totalHits > page * 15);
     })
-    .await(function (error) {
-      iziToast.error({ title: 'Error', message: error.message });
-      loader.classList.add('is-hidden');
-      loadMoreButton.classList.add('is-hidden');
+    .catch(function (error) {
+      iziToast.error({ title: 'Помилка', message: error.message });
+      toggleLoader(false);
+      toggleLoadMoreButton(false);
     });
-});
+}
 
 loadMoreButton.addEventListener('click', function () {
   page += 1;
-  loader.classList.remove('is-hidden');
-  fetchImages(query, page)
-    .then(function (response) {
-      loader.classList.add('is-hidden');
-      if (response.hits.length === 0) {
-        iziToast.warning({ title: 'No more results', message: 'Sorry, no more images found!' });
-        loadMoreButton.classList.add('is-hidden');
-        return;
-      }
-      renderImages(response.hits, gallery);
-      lightbox.refresh();
-
-      const galleryItems = document.querySelectorAll('.gallery__item');
-      const cardHeight = galleryItems[0].getBoundingClientRect().height;
-      window.scrollBy(0, cardHeight * 2);
-
-      
-      if (response.totalHits > page * 15) {
-        loadMoreButton.classList.remove('is-hidden');
-      } else {
-        loadMoreButton.classList.add('is-hidden');
-        iziToast.info({ title: 'End of results', message: "You've reached the end of the search results." });
-      }
-    })
-    .await(function (error) {
-      iziToast.error({ title: 'Error', message: error.message });
-      loader.classList.add('is-hidden');
-      loadMoreButton.classList.add('is-hidden'); 
-    });
+  toggleLoader(true);
+  loadImages();
+  scrollToNextImages();
 });
+
+function toggleLoader(isVisible) {
+  loader.classList.toggle('is-hidden', !isVisible);
+}
+
+function toggleLoadMoreButton(isVisible) {
+  loadMoreButton.classList.toggle('is-hidden', !isVisible);
+}
+
+function scrollToNextImages() {
+  const galleryItems = document.querySelectorAll('.gallery__item');
+  const cardHeight = galleryItems[0].getBoundingClientRect().height;
+  window.scrollBy(0, cardHeight * 2);
+}
