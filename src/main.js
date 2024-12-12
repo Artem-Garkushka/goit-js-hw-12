@@ -20,6 +20,7 @@ form.addEventListener('submit', function (event) {
   query = form.elements.searchQuery.value.trim();
   if (!query) {
     iziToast.error({ title: 'Помилка', message: 'Будь ласка, введіть запит для пошуку!' });
+    loadMoreButton.classList.add('is-hidden');
     return;
   }
 
@@ -35,6 +36,7 @@ function loadImages() {
       toggleLoader(false);
       if (response.hits.length === 0) {
         iziToast.warning({ title: 'Результати відсутні', message: 'Вибачте, зображень не знайдено!' });
+        loadMoreButton.classList.add('is-hidden');
         return;
       }
       renderImages(response.hits, gallery);
